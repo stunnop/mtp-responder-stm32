@@ -1,5 +1,6 @@
 #include "usbd_mtp.h"
 #include "usbd_ctlreq.h"
+#include "mtp_constants.h"
 
 /* USB Standard Device Descriptor */
 /*CLAUDE : Device Descriptor - This is the primary descriptor that identifies the device. It contains basic information like vendor ID, product ID, 
@@ -38,8 +39,8 @@ USBD_ClassTypeDef USBD_MTP = {
     USBD_MTP_DeInit,
     USBD_MTP_Setup,
     NULL,
-    NULL,
-    USBD_MTP_DataIn,//includes interrupt and data EPS hence epnum
+    USBD_MTP_EP0_RxReady,
+    USBD_MTP_DataIn,//includes interrupt and data EPs hence epnum
     USBD_MTP_DataOut,
     NULL,
     NULL,
@@ -77,14 +78,15 @@ static uint8_t  USBD_MTP_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx){
   }else{
     USBD_MTP_HandleTypeDef *hMTP = pdev->pClassData; //class handle
     /* Init  physical Interface components */
-    ((USBD_CDC_ItfTypeDef *)pdev->pUserData)->Init(); //i have no clue what this actually does
+
+    //((USBD_CDC_ItfTypeDef *)pdev->pUserData)->Init(); //i have no clue what this actually does
 
     /* Init Xfer states */
-    hcdc->TxState = 0U;
-    hcdc->RxState = 0U;
+    hMTP->TxState = 0U;
+    hMTP->RxState = 0U;
 
     /* Prepare Out endpoint to receive next packet */
-    USBD_LL_PrepareReceive(pdev, MTP_OUT_EP, hcdc->RxBuffer, CDC_DATA_FS_OUT_PACKET_SIZE);
+    USBD_LL_PrepareReceive(pdev, MTP_OUT_EP, hMTP->RxBuffer, CDC_DATA_FS_OUT_PACKET_SIZE);
   }
 
   return ret;
@@ -113,13 +115,129 @@ static uint8_t  USBD_MTP_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx){
    //TODO IDK!!
    if (pdev->pClassData != NULL)
    {
-     ((USBD_CDC_ItfTypeDef *)pdev->pUserData)->DeInit();
+     //((USBD_CDC_ItfTypeDef *)pdev->pUserData)->DeInit();
      USBD_free(pdev->pClassData);
      pdev->pClassData = NULL;
    }
  
    return ret;
  }
+
+ static uint8_t  USBD_MTP_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req){
+  printf("USBD_MTP_Setup->");
+  printf("bmRequest:%02x bRequest:%02x\r\n", req->bmRequest, req->bRequest);
+
+  switch (req->bRequest)
+  {
+  case MTP_REQ_GET_DEVICE_STATUS:
+    /* code */
+    printf("MTP_REQ_GET_DEVICE_STATUS received\r\n");
+    break;
+  
+  default:
+    break;
+  }
+  USBD_MTP_HandleTypeDef   *hMTP = (USBD_MTP_HandleTypeDef *) pdev->pClassData;
+
+  return 1U;
+ }
+
+static uint8_t  USBD_MTP_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum){
+  printf("USBD_MTP_DataIn\r\n");
+
+  return 1U;
+}
+
+/**
+  * @brief  USBD_MTP_DataOut
+  *         Data received on non-control Out endpoint
+  * @param  pdev: device instance
+  * @param  cfgidx: Configuration index
+  * @retval status
+  */
+static uint8_t  USBD_MTP_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum){
+  printf("USBD_MTP_DataOut\r\n");
+  USBD_MTP_HandleTypeDef *hMTP = (USBD_MTP_HandleTypeDef *) pdev->pClassData;
+
+  //Get the received data length
+  hMTP->RxLength = USBD_LL_GetRxDataSize(pdev, epnum);
+  printf("data received of length %lu \r\n", hMTP->RxLength);
+  printf("data received :");
+  for (uint32_t i = 0; i < hMTP->RxLength; i++) {
+    printf("%02x ", hMTP->RxBuffer[i]);
+  }
+  printf("\r\n");
+
+  return 1U;
+}
+
+/**
+  * @brief  USBD_MTP_EP0_RxReady
+  *         Handle EP0 Rx Ready event
+  * @param  pdev: device instance
+  * @retval status
+*/
+static uint8_t  USBD_MTP_EP0_RxReady(USBD_HandleTypeDef *pdev)
+{
+
+	printf("USBD_MTP_EP0_RxReady");
+	USBD_MTP_HandleTypeDef *hMTP = (USBD_MTP_HandleTypeDef *) pdev->pClassData;
+
+  if ((pdev->pUserData != NULL) && (hMTP->CmdOpCode != 0xFFU))
+  {
+    hMTP->CmdOpCode = 0xFFU;
+
+  }
+  return USBD_OK;
+}
+
+
+uint8_t  USBD_MTP_RegisterInterface(USBD_HandleTypeDef *pdev, USBD_MTP_ItfTypeDef *fops){
+  printf("USBD_MTP_RegisterInterface\r\n");
+  uint8_t ret = USBD_FAIL;
+
+  if (fops != NULL){
+    pdev->pUserData = fops;
+    ret = USBD_OK;
+  }
+
+  return ret;
+}
+
+/**
+  * @brief  USBD_MTP_SetTxBuffer
+  * assign transmission buffer in handler to actual buffer address
+  * @param  pdev: device instance
+  * @param  pbuff: Tx Buffer
+  * @retval status
+*/
+uint8_t  USBD_MTP_SetTxBuffer(USBD_HandleTypeDef   *pdev, uint8_t  *pbuff, uint16_t length){
+  printf("USBD_MTP_SetTxBuffer\r\n");
+  USBD_MTP_HandleTypeDef   *hMTP = (USBD_MTP_HandleTypeDef *) pdev->pClassData;
+
+  hMTP->TxBuffer = pbuff;
+  hMTP->TxLength = length;
+
+  return USBD_OK;
+}
+
+/**
+  * @brief  USBD_MTP_SetRxBuffer
+  * assign reception buffer in handler to actual buffer address
+  * @param  pdev: device instance
+  * @param  pbuff: Tx Buffer
+  * @retval status
+*/
+uint8_t  USBD_MTP_SetRxBuffer(USBD_HandleTypeDef   *pdev, uint8_t  *pbuff){
+  printf("USBD_MTP_SetRxBuffer\r\n");
+  USBD_MTP_HandleTypeDef   *hMTP = (USBD_MTP_HandleTypeDef *) pdev->pClassData;
+
+  hMTP->RxBuffer = pbuff;
+
+  return USBD_OK;
+}
+
+
 
 /* USB MTP device Configuration Descriptor */
 __ALIGN_BEGIN uint8_t USBD_MTP_CfgHSDesc[USB_MTP_CONFIG_DESC_SIZ] __ALIGN_END =
@@ -144,7 +262,7 @@ __ALIGN_BEGIN uint8_t USBD_MTP_CfgHSDesc[USB_MTP_CONFIG_DESC_SIZ] __ALIGN_END =
   /* Interface descriptor type */
   0x00,   /* bInterfaceNumber: Number of Interface */
   0x00,   /* bAlternateSetting: Alternate setting */
-  0x01,   /* bNumEndpoints: One endpoints used */
+  0x03,   /* bNumEndpoints:  three endpoints used */
   0x06,   /* bInterfaceClass: Communication Interface Class */
   0x01,   /* bInterfaceSubClass: Abstract Control Model */
   0x01,   /* bInterfaceProtocol: Common AT commands */
@@ -207,7 +325,7 @@ __ALIGN_BEGIN uint8_t USBD_MTP_CfgFSDesc[USB_MTP_CONFIG_DESC_SIZ] __ALIGN_END =
   /* Interface descriptor type */
   0x00,   /* bInterfaceNumber: Number of Interface */
   0x00,   /* bAlternateSetting: Alternate setting */
-  0x01,   /* bNumEndpoints: One endpoints used */
+  0x03,   /* bNumEndpoints:  three endpoints used */
   0x06,   /* bInterfaceClass: Communication Interface Class */
   0x01,   /* bInterfaceSubClass: Abstract Control Model */
   0x01,   /* bInterfaceProtocol: Common AT commands */
@@ -264,7 +382,7 @@ __ALIGN_BEGIN uint8_t USBD_MTP_OtherSpeedCfgDesc[USB_MTP_CONFIG_DESC_SIZ] __ALIG
   /* Interface descriptor type */
   0x00,   /* bInterfaceNumber: Number of Interface */
   0x00,   /* bAlternateSetting: Alternate setting */
-  0x01,   /* bNumEndpoints: One endpoints used */
+  0x03,   /* bNumEndpoints: three endpoints used */
   0x06,   /* bInterfaceClass: Communication Interface Class */
   0x01,   /* bInterfaceSubClass: Abstract Control Model */
   0x01,   /* bInterfaceProtocol: Common AT commands */
@@ -309,6 +427,7 @@ __ALIGN_BEGIN uint8_t USBD_MTP_OtherSpeedCfgDesc[USB_MTP_CONFIG_DESC_SIZ] __ALIG
   */
 static uint8_t  *USBD_MTP_GetFSCfgDesc(uint16_t *length)
 {
+  printf("Gave Full Speed CfgDesc\r\n");
   *length = sizeof(USBD_MTP_CfgFSDesc);
   return USBD_MTP_CfgFSDesc;
 }
@@ -322,6 +441,7 @@ static uint8_t  *USBD_MTP_GetFSCfgDesc(uint16_t *length)
   */
 static uint8_t  *USBD_MTP_GetHSCfgDesc(uint16_t *length)
 {
+  printf("Gave Half Speed CfgDesc\r\n");
   *length = sizeof(USBD_MTP_CfgHSDesc);
   return USBD_MTP_CfgHSDesc;
 }
@@ -335,6 +455,7 @@ static uint8_t  *USBD_MTP_GetHSCfgDesc(uint16_t *length)
   */
 static uint8_t  *USBD_MTP_GetOtherSpeedCfgDesc(uint16_t *length)
 {
+  printf("Gave Other Speed CfgDesc\r\n");
   *length = sizeof(USBD_MTP_OtherSpeedCfgDesc);
   return USBD_MTP_OtherSpeedCfgDesc;
 }

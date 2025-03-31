@@ -257,12 +257,22 @@ USBD_StatusTypeDef USBD_ClrClassConfig(USBD_HandleTypeDef  *pdev, uint8_t cfgidx
 /**
 * @brief  USBD_SetupStage
 *         Handle the setup stage
+          USB requests are categorized by their recipient field, which determines the target of the request:
+          The recipient is specified in the bmRequestType field of the USB setup packet, with bits 0-4 indicating:
+          0: Device
+          1: Interface
+          2: Endpoint
+          3: Other
+        
+          Most standard requests are device requests, while MTP-specific control operations might be interface requests.
+
 * @param  pdev: device instance
 * @retval status
 */
 USBD_StatusTypeDef USBD_LL_SetupStage(USBD_HandleTypeDef *pdev, uint8_t *psetup)
 {
   USBD_ParseSetupRequest(&pdev->request, psetup);
+  printf("USBD_LL_SetupStage->");
 
   pdev->ep0_state = USBD_EP0_SETUP;
 
@@ -270,7 +280,7 @@ USBD_StatusTypeDef USBD_LL_SetupStage(USBD_HandleTypeDef *pdev, uint8_t *psetup)
 
   switch (pdev->request.bmRequest & 0x1FU)
   {
-    case USB_REQ_RECIPIENT_DEVICE:
+    case USB_REQ_RECIPIENT_DEVICE: 
       USBD_StdDevReq(pdev, &pdev->request);
       break;
 
@@ -300,6 +310,7 @@ USBD_StatusTypeDef USBD_LL_SetupStage(USBD_HandleTypeDef *pdev, uint8_t *psetup)
 USBD_StatusTypeDef USBD_LL_DataOutStage(USBD_HandleTypeDef *pdev,
                                         uint8_t epnum, uint8_t *pdata)
 {
+  printf("USBD_LL_DataOutStage->");
   USBD_EndpointTypeDef *pep;
 
   if (epnum == 0U)
@@ -317,8 +328,8 @@ USBD_StatusTypeDef USBD_LL_DataOutStage(USBD_HandleTypeDef *pdev,
       }
       else
       {
-        if ((pdev->pClass->EP0_RxReady != NULL) &&
-            (pdev->dev_state == USBD_STATE_CONFIGURED))
+        if ((pdev->pClass->EP0_RxReady != NULL) && //This USBD_CDC_EP0_RxReady function handles class-specific control requests that were received on endpoint 0 (the control endpoint).
+            (pdev->dev_state == USBD_STATE_CONFIGURED)) //such as SET_LINE_CONDING for CDC
         {
           pdev->pClass->EP0_RxReady(pdev);
         }
@@ -361,6 +372,7 @@ USBD_StatusTypeDef USBD_LL_DataOutStage(USBD_HandleTypeDef *pdev,
 USBD_StatusTypeDef USBD_LL_DataInStage(USBD_HandleTypeDef *pdev,
                                        uint8_t epnum, uint8_t *pdata)
 {
+  printf("USBD_LL_DataInStage\r\n");
   USBD_EndpointTypeDef *pep;
 
   if (epnum == 0U)

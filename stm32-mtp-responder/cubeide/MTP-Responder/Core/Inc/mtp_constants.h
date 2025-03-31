@@ -97,7 +97,11 @@
 #define MTP_RESPONSE_OBJECT_PROP_NOT_SUPPORTED                  0xA80A
 #define MTP_RESPONSE_NO_RESPONSE                                0xFFFF
 
-
+// MTP class requests
+#define MTP_REQ_CANCEL              0x64
+#define MTP_REQ_GET_EXT_EVENT_DATA  0x65
+#define MTP_REQ_RESET               0x66
+#define MTP_REQ_GET_DEVICE_STATUS   0x67
 
 
 #endif /* INC_MTP_CONSTANTS_H_ */

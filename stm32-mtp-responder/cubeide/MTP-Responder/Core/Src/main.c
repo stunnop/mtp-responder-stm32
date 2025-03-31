@@ -19,9 +19,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usb_device.h"
-#include "usbd_cdc_if.h"
 #include "stm32l053xx.h"
 #include "mtp_constants.h"
+#include "usbd_mtp_if.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -101,7 +101,8 @@ int main(void)
 
   char readyMessage[] = "STM32 COM USB ready\r\n";
   char message[] = "Hello from STM32\r\n";
-  CDC_Transmit_FS(readyMessage, sizeof(message)-1);
+  char str[] = "azertyuiop\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n";
+  HAL_UART_Transmit(&huart1, (uint8_t *)str, strlen(str), HAL_MAX_DELAY);
 
   DeviceInfo board;
   collectDeviceInfo(&board);
@@ -112,49 +113,12 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
-	  //printf("we are the %d/%d/%d .\r\n", 11, 3, 2025);
-	  uint8_t result;
-	  result = CDC_Transmit_FS(message, sizeof(message)-1);
-	  if(result != USBD_BUSY){
-		  HAL_GPIO_TogglePin(LD_G_GPIO_Port, LD_G_Pin);
-	  }else{
-		  HAL_GPIO_TogglePin(LD_R_GPIO_Port, LD_R_Pin);
-	  }
-	  for(int i =0 ; i < 500000;i++){}
-	  result = CDC_Transmit_FS(board.DeviceVersion, strlen(board.DeviceVersion));
-	  if(result != USBD_BUSY){
-	  		  HAL_GPIO_TogglePin(LD_G_GPIO_Port, LD_G_Pin);
-	  	  }else{
-	  		  HAL_GPIO_TogglePin(LD_R_GPIO_Port, LD_R_Pin);
-	  	  }
-	  for(int i =0 ; i < 500000;i++){}
-	  result = CDC_Transmit_FS(board.Manufacturer, strlen(board.Manufacturer));
-	  if(result != USBD_BUSY){
-	  		  HAL_GPIO_TogglePin(LD_G_GPIO_Port, LD_G_Pin);
-	  	  }else{
-	  		  HAL_GPIO_TogglePin(LD_R_GPIO_Port, LD_R_Pin);
-	  	  }
-	  for(int i =0 ; i < 500000;i++){}
-	  result = CDC_Transmit_FS(board.Model, strlen(board.Model));
-	  if(result != USBD_BUSY){
-	  		  HAL_GPIO_TogglePin(LD_G_GPIO_Port, LD_G_Pin);
-	  	  }else{
-	  		  HAL_GPIO_TogglePin(LD_R_GPIO_Port, LD_R_Pin);
-	  	  }
-	  for(int i =0 ; i < 500000;i++){}
-	  result = CDC_Transmit_FS(board.SerialNumber, strlen(board.SerialNumber));
-	  if(result != USBD_BUSY){
-	  		  HAL_GPIO_TogglePin(LD_G_GPIO_Port, LD_G_Pin);
-	  	  }else{
-	  		  HAL_GPIO_TogglePin(LD_R_GPIO_Port, LD_R_Pin);
-	  	  }
-	  for(int i =0 ; i < 500000;i++){}
+	  //HAL_StatusTypeDef ret = HAL_UART_Transmit(&huart1, (uint8_t*)"test\r\n", 6, HAL_MAX_DELAY);//HAL_UART_Transmit(&huart1, (uint8_t *)str, strlen(str), HAL_MAX_DELAY);
+	  //if (ret == HAL_OK) {HAL_GPIO_TogglePin(LD_G_GPIO_Port, LD_G_Pin);}
+	  for (int var = 0; var < 500000; ++var) {}
 
   }
-  /* USER CODE END 3 */
 
 }
 
@@ -479,8 +443,8 @@ static void MX_GPIO_Init(void)
 int __io_putchar(int ch)
 {
 	uint8_t temp = (uint8_t)ch;
-	CDC_Transmit_FS(&temp, sizeof(temp));
-  return ch;
+	HAL_UART_Transmit(&huart1, &temp, sizeof(char), HAL_MAX_DELAY);
+	return ch;
 }
 
 /*
@@ -519,6 +483,7 @@ void Error_Handler(void)
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
+  HAL_GPIO_TogglePin(LD_R_GPIO_Port, LD_R_Pin);
   while (1)
   {
   }

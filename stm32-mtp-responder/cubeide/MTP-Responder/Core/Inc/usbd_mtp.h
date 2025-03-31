@@ -35,7 +35,7 @@ extern "C" {
 #define CDC_DATA_FS_MAX_PACKET_SIZE                 64U  /* Endpoint IN & OUT Packet size */
 #define CDC_CMD_PACKET_SIZE                         8U  /* Control Endpoint Packet size */
 
-#define USB_MTP_CONFIG_DESC_SIZ                     48U
+#define USB_MTP_CONFIG_DESC_SIZ                     39U
 #define CDC_DATA_HS_IN_PACKET_SIZE                  CDC_DATA_HS_MAX_PACKET_SIZE
 #define CDC_DATA_HS_OUT_PACKET_SIZE                 CDC_DATA_HS_MAX_PACKET_SIZE
 
@@ -43,31 +43,24 @@ extern "C" {
 #define CDC_DATA_FS_OUT_PACKET_SIZE                 CDC_DATA_FS_MAX_PACKET_SIZE
 
 
-typedef struct
-{
-  uint32_t bitrate;
-  uint8_t  format;
-  uint8_t  paritytype;
-  uint8_t  datatype;
-} USBD_CDC_LineCodingTypeDef;
 
-typedef struct _USBD_CDC_Itf
+typedef struct _USBD_MTP_Itf
 {
   int8_t (* Init)(void);
   int8_t (* DeInit)(void);
   int8_t (* Control)(uint8_t cmd, uint8_t *pbuf, uint16_t length);
   int8_t (* Receive)(uint8_t *Buf, uint32_t *Len);
 
-} USBD_CDC_ItfTypeDef;
+} USBD_MTP_ItfTypeDef;
 
 
 /*shoved into regular handle->pclassdata ?*/
 typedef struct
 {
   uint32_t data[CDC_DATA_HS_MAX_PACKET_SIZE / 4U];      /* Force 32bits alignment */
-  uint8_t  CmdOpCode;
+  uint16_t  CmdOpCode;
   uint8_t  CmdLength;
-  uint8_t  *RxBuffer;
+  uint8_t  *RxBuffer; //lets avoid reading random memory and properly initialise this !! 
   uint8_t  *TxBuffer;
   uint32_t RxLength;
   uint32_t TxLength;
@@ -95,8 +88,8 @@ USBD_MTP_HandleTypeDef;
   * @{
   */
 
-extern USBD_ClassTypeDef  USBD_CDC;
-#define USBD_CDC_CLASS    &USBD_CDC
+extern USBD_ClassTypeDef  USBD_MTP;
+#define USBD_MTP_CLASS    &USBD_MTP
 /**
   * @}
   */
@@ -104,19 +97,19 @@ extern USBD_ClassTypeDef  USBD_CDC;
 /** @defgroup USB_CORE_Exported_Functions
   * @{
   */
-uint8_t  USBD_CDC_RegisterInterface(USBD_HandleTypeDef   *pdev,
-                                    USBD_CDC_ItfTypeDef *fops);
+uint8_t  USBD_MTP_RegisterInterface(USBD_HandleTypeDef   *pdev,
+                                    USBD_MTP_ItfTypeDef *fops);
 
-uint8_t  USBD_CDC_SetTxBuffer(USBD_HandleTypeDef   *pdev,
+uint8_t  USBD_MTP_SetTxBuffer(USBD_HandleTypeDef   *pdev,
                               uint8_t  *pbuff,
                               uint16_t length);
 
-uint8_t  USBD_CDC_SetRxBuffer(USBD_HandleTypeDef   *pdev,
+uint8_t  USBD_MTP_SetRxBuffer(USBD_HandleTypeDef   *pdev,
                               uint8_t  *pbuff);
 
-uint8_t  USBD_CDC_ReceivePacket(USBD_HandleTypeDef *pdev);
+uint8_t  USBD_MTP_ReceivePacket(USBD_HandleTypeDef *pdev);
 
-uint8_t  USBD_CDC_TransmitPacket(USBD_HandleTypeDef *pdev);
+uint8_t  USBD_MTP_TransmitPacket(USBD_HandleTypeDef *pdev);
 /**
   * @}
   */
@@ -125,7 +118,7 @@ uint8_t  USBD_CDC_TransmitPacket(USBD_HandleTypeDef *pdev);
 }
 #endif
 
-#endif  /* __USB_CDC_H */
+#endif  /* __USB_MTP_H */
 /**
   * @}
   */

@@ -1,0 +1,5 @@
+{
+    "files.associations": {
+        "usbd_mtp_if.h": "c"
+    }
+}

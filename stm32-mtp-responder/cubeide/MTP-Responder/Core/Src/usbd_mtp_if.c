@@ -1,8 +1,7 @@
+
 /*
- USER CODE BEGIN Header
-*
   ******************************************************************************
-  * @file           : usbd_cdc_if.c
+  * @file           : usbd_mtp_if.c
   * @version        : v2.0_Cube
   * @brief          : Usb device for Virtual Com Port.
   ******************************************************************************
@@ -15,121 +14,76 @@
   * in the root directory of this software component.
   * If no LICENSE file comes with this software, it is provided AS-IS.
   *
-  ******************************************************************************
-
- USER CODE END Header
-
- Includes ------------------------------------------------------------------
-#include "usbd_cdc_if.h"
-
-* @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
-  * @brief Usb device library.
-  * @{
+  ******************************************************************************/
 
 
-* @addtogroup USBD_CDC_IF
-  * @{
+//Includes ------------------------------------------------------------------
+#include "usbd_mtp_if.h"
 
+/*Create buffer for reception and transmission
+ It's up to user to redefine and/or remove those define */
 
-* @defgroup USBD_CDC_IF_Private_TypesDefinitions USBD_CDC_IF_Private_TypesDefinitions
-  * @brief Private types.
-  * @{
-
-
-* @defgroup USBD_CDC_IF_Private_Defines USBD_CDC_IF_Private_Defines
-  * @brief Private defines.
-  * @{
-
-
-* @defgroup USBD_CDC_IF_Private_Macros USBD_CDC_IF_Private_Macros
-  * @brief Private macros.
-  * @{
-
-
-* @defgroup USBD_CDC_IF_Private_Variables USBD_CDC_IF_Private_Variables
-  * @brief Private variables.
-  * @{
-
- Create buffer for reception and transmission
- It's up to user to redefine and/or remove those define
-* Received data over USB are stored in this buffer
+/*Received data over USB are stored in this buffer */
 uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 
-* Data to send over USB CDC are stored in this buffer
+//Data to send over USB CDC are stored in this buffer
 uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 
-
-* @defgroup USBD_CDC_IF_Exported_Variables USBD_CDC_IF_Exported_Variables
-  * @brief Public variables.
-  * @{
 
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
 
-*
-  * @}
+/*private functions declaration*/
+static int8_t MTP_Init_FS(void);
+static int8_t MTP_DeInit_FS(void);
+static int8_t MTP_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length);
+static int8_t MTP_Receive_FS(uint8_t* pbuf, uint32_t *Len);
 
 
-* @defgroup USBD_CDC_IF_Private_FunctionPrototypes USBD_CDC_IF_Private_FunctionPrototypes
-  * @brief Private functions declaration.
-  * @{
 
-
-static int8_t CDC_Init_FS(void);
-static int8_t CDC_DeInit_FS(void);
-static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length);
-static int8_t CDC_Receive_FS(uint8_t* pbuf, uint32_t *Len);
-
-
-*
-  * @}
-
-
-USBD_CDC_ItfTypeDef USBD_Interface_fops_FS =
+USBD_MTP_ItfTypeDef USBD_Interface_fops_FS =
 {
-  CDC_Init_FS,
-  CDC_DeInit_FS,
-  CDC_Control_FS,
-  CDC_Receive_FS
+  MTP_Init_FS,
+  MTP_DeInit_FS,
+  MTP_Control_FS,
+  MTP_Receive_FS
 };
 
- Private functions ---------------------------------------------------------
-*
+
+/**
   * @brief  Initializes the CDC media low layer over the FS USB IP
   * @retval USBD_OK if all operations are OK else USBD_FAIL
-
-static int8_t CDC_Init_FS(void)
+*/
+static int8_t MTP_Init_FS(void)
 {
-   USER CODE BEGIN 3
-   Set Application Buffers
-  USBD_CDC_SetTxBuffer(&hUsbDeviceFS, UserTxBufferFS, 0);
-  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS);
+  printf("MTP_Init_FS\r\n");
+  //Set Application Buffers
+  USBD_MTP_SetTxBuffer(&hUsbDeviceFS, UserTxBufferFS, 0);
+  USBD_MTP_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS);
   return (USBD_OK);
-   USER CODE END 3
 }
 
-*
+/**
   * @brief  DeInitializes the CDC media low layer
   * @retval USBD_OK if all operations are OK else USBD_FAIL
-
-static int8_t CDC_DeInit_FS(void)
+*/
+static int8_t MTP_DeInit_FS(void)
 {
-   USER CODE BEGIN 4
   return (USBD_OK);
-   USER CODE END 4
 }
 
-*
+/**
   * @brief  Manage the CDC class requests
   * @param  cmd: Command code
   * @param  pbuf: Buffer containing command data (request parameters)
   * @param  length: Number of data to be sent (in bytes)
   * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
-
-static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
+*/
+static int8_t MTP_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 {
-   USER CODE BEGIN 5
+  printf("MTP_Control_FS\r\n");
+  /*
   switch(cmd)
   {
     case CDC_SEND_ENCAPSULATED_COMMAND:
@@ -152,7 +106,7 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 
     break;
 
-  *****************************************************************************
+  /*****************************************************************************
    Line Coding Structure
   -----------------------------------------------------------------------------
    Offset | Field       | Size | Value  | Description
@@ -188,12 +142,11 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   default:
     break;
   }
-
+  */
   return (USBD_OK);
-   USER CODE END 5
 }
 
-*
+/*
   * @brief  Data received over USB OUT endpoint are sent over CDC interface
   *         through this function.
   *
@@ -207,17 +160,17 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   * @param  Buf: Buffer of data to be received
   * @param  Len: Number of data received (in bytes)
   * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
-
-static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
+*/
+static int8_t MTP_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
-   USER CODE BEGIN 6
-  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
-  USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+  printf("MTP_Receive_FS\r\n");
+  /*
+  USBD_MTP_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
+  USBD_MTP_ReceivePacket(&hUsbDeviceFS); */
   return (USBD_OK);
-   USER CODE END 6
 }
 
-*
+/*
   * @brief  CDC_Transmit_FS
   *         Data to send over USB IN endpoint are sent over CDC interface
   *         through this function.
@@ -227,17 +180,17 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   * @param  Buf: Buffer of data to be sent
   * @param  Len: Number of data to be sent (in bytes)
   * @retval USBD_OK if all operations are OK else USBD_FAIL or USBD_BUSY
-
-uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
+*/
+uint8_t MTP_Transmit_FS(uint8_t* Buf, uint16_t Len)
 {
+  printf("MTP_Transmit_FS called\r\n");
   uint8_t result = USBD_OK;
-   USER CODE BEGIN 7
-  USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
+  
+  /* USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
   if (hcdc->TxState != 0){
     return USBD_BUSY;
   }
   USBD_CDC_SetTxBuffer(&hUsbDeviceFS, Buf, Len);
-  result = USBD_CDC_TransmitPacket(&hUsbDeviceFS);
-   USER CODE END 7
+  result = USBD_CDC_TransmitPacket(&hUsbDeviceFS); */
   return result;
-}*/
+}

@@ -115,6 +115,7 @@ USBD_StatusTypeDef  USBD_StdDevReq(USBD_HandleTypeDef *pdev,
                                    USBD_SetupReqTypedef *req)
 {
   USBD_StatusTypeDef ret = USBD_OK;
+  printf("USBD_StdDevReq\r\n");
 
   switch (req->bmRequest & USB_REQ_TYPE_MASK)
   {
@@ -179,6 +180,7 @@ USBD_StatusTypeDef  USBD_StdItfReq(USBD_HandleTypeDef *pdev,
                                    USBD_SetupReqTypedef  *req)
 {
   USBD_StatusTypeDef ret = USBD_OK;
+  printf("USBD_StdItfReq\r\n");
 
   switch (req->bmRequest & USB_REQ_TYPE_MASK)
   {
@@ -234,6 +236,7 @@ USBD_StatusTypeDef  USBD_StdEPReq(USBD_HandleTypeDef *pdev,
   uint8_t   ep_addr;
   USBD_StatusTypeDef ret = USBD_OK;
   ep_addr  = LOBYTE(req->wIndex);
+  printf("USBD_StdEPReq\r\n");
 
   switch (req->bmRequest & USB_REQ_TYPE_MASK)
   {
@@ -636,6 +639,7 @@ static void USBD_SetAddress(USBD_HandleTypeDef *pdev,
 */
 static void USBD_SetConfig(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {
+  printf("USBD_SetConfig\r\n");
   static uint8_t cfgidx;
 
   cfgidx = (uint8_t)(req->wValue);
